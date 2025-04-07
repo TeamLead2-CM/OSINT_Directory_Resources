@@ -5,8 +5,8 @@ import requests
 from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 
-# Load the Excel file (replace 'file.xlsx' with your actual filename)
-file_path = 'ai.xlsx'
+# Load the Excel file (replace 'ai_copy.xlsx' with your actual filename)
+file_path = 'ai_copy.xlsx'
 data = pd.read_excel(file_path)
 
 def download_file_from_google_drive(drive_link):
@@ -35,7 +35,11 @@ def download_file_from_google_drive(drive_link):
 # Iterate through each row in the DataFrame
 for index, row in data.iterrows():
     tool_id = str(row.iloc[0])  # Access Tool ID by position
-    drive_link = row.iloc[1]    # Access Drive Link by position
+    # drive_link = row.iloc[1]    # LOGO
+    # drive_link = row.iloc[2]    # UI
+    # drive_link = row.iloc[3]    # DEMO 1
+    # drive_link = row.iloc[4]    # DEMO 2
+    drive_link = row.iloc[5]    # DEMO 3
     
     try:
         # Download the image from Google Drive
@@ -52,7 +56,7 @@ for index, row in data.iterrows():
                     img = img.convert("RGB")
                 
                 # Define the filename as Tool ID
-                filename = f"logo/logo_{tool_id}.jpg"  # Change extension if needed
+                filename = f"demo3/demo3_{tool_id}.jpg"  # Change folder and filename
                 
                 # Save the image to the specified path
                 img.save(filename, "JPEG", quality=92)  # Save as JPEG with quality
