@@ -4,7 +4,7 @@
 import pandas as pd
 
 # Load the Excel file
-file_path = 'ai_copy.xlsx'  # Replace with your file path
+file_path = 'ai.xlsx'  # Replace with your file path
 df = pd.read_excel(file_path)
 
 # Define the base URLs
