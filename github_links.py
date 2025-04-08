@@ -35,6 +35,6 @@ for index, row in df.iterrows():
     df.loc[index, 'Demo 3 Image Github'] = demo3_url
 
 # Save the updated DataFrame back to Excel
-df.to_excel('github_urls_updated.xlsx', index=False)  # Replace with your desired output file path
+df.to_excel('github.xlsx', index=False)  # Replace with your desired output file path
 
 print("Excel file updated successfully!")

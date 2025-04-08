@@ -6,7 +6,7 @@ from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 
 # Load the Excel file (replace 'ai_copy.xlsx' with your actual filename)
-file_path = 'drive_links.xlsx'
+file_path = 'ai.xlsx'
 data = pd.read_excel(file_path)
 
 def download_file_from_google_drive(drive_link):
