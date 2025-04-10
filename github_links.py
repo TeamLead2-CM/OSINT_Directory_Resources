@@ -1,18 +1,18 @@
-# https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/test/logo/logo_T_AI_0001.jpg
-# https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/test/{filename}
+# https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/osint/logo/logo_T_AI_0001.jpg
+# https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/osint/{filename}
 
 import pandas as pd
 
 # Load the Excel file
-file_path = 'ai.xlsx'  # Replace with your file path
+file_path = '../osint.xlsx'  # Replace with your file path
 df = pd.read_excel(file_path)
 
 # Define the base URLs
-base_url_logo = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/test/logo/logo_{toolid}.jpg"
-base_url_ui = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/test/ui/ui_{toolid}.jpg"
-base_url_demo1 = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/test/demo1/demo1_{toolid}.jpg"
-base_url_demo2 = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/test/demo2/demo2_{toolid}.jpg"
-base_url_demo3 = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/test/demo3/demo3_{toolid}.jpg"
+base_url_logo = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/osint/logo/logo_{toolid}.jpg"
+base_url_ui = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/osint/ui/ui_{toolid}.jpg"
+base_url_demo1 = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/osint/demo1/demo1_{toolid}.jpg"
+base_url_demo2 = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/osint/demo2/demo2_{toolid}.jpg"
+base_url_demo3 = "https://raw.githubusercontent.com/TeamLead2-CM/OSINT_Directory_Resources/osint/demo3/demo3_{toolid}.jpg"
 
 # Iterate through the DataFrame and fill the URLs in the new columns
 for index, row in df.iterrows():
@@ -35,6 +35,6 @@ for index, row in df.iterrows():
     df.loc[index, 'Demo 3 Image Github'] = demo3_url
 
 # Save the updated DataFrame back to Excel
-df.to_excel('github.xlsx', index=False)  # Replace with your desired output file path
+df.to_excel('../github_osint.xlsx', index=False)  # Replace with your desired output file path
 
 print("Excel file updated successfully!")
