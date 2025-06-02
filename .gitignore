@@ -1,8 +1,5 @@
 ai.xlsx
 osint.xlsx
-github_osint.xlsx
-github_ai.xlsx
-ai_github_links.py
-image_download.py
-osint_github_links.py
+# image_downloader.py
+# github_link_generator.py
 log.txt
