@@ -13,14 +13,14 @@ import time
 
 # Disable SSL warnings (use only in trusted/internal context)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-print("⚠️ WARNING: SSL verification is disabled. Use only for trusted internal scripts.")
+print("⚠️ WARNING: SSL verification is disabled. Use only for trusted internal scripts. NOT RECOMMENDED IN PRODUCTION!")
 
 # Set up logging
 logging.basicConfig(filename='log.txt', level=logging.ERROR, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Define constants
-file_path = 'osint.xlsx'
+# file_path = 'osint.xlsx' # taken using argument --file, default: osint.xlsx 
 base_dir = 'osint'
 columns_and_folders = {
     'Tool Logo': 'logo',
@@ -30,9 +30,15 @@ columns_and_folders = {
     'Demo 3 Image': 'demo3',
 }
 
+folder_paths = {folder: os.path.join(base_dir, folder) for folder in columns_and_folders.values()} # cache all folder_path once at start
+
 # Ensure output folders exist
 for folder in columns_and_folders.values():
     os.makedirs(os.path.join(base_dir, folder), exist_ok=True)
+
+# Create a session for persistent connection reuse
+session = requests.Session()
+session.headers.update({'User-Agent': 'Mozilla/5.0'})
 
 def download_file_from_google_drive(drive_link, max_retries=3):
     try:
@@ -41,11 +47,10 @@ def download_file_from_google_drive(drive_link, max_retries=3):
         raise RuntimeError(f"Invalid Google Drive link: {drive_link}")
 
     download_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    headers = {'User-Agent': 'Mozilla/5.0'}
 
     for attempt in range(1, max_retries + 1):
         try:
-            response = requests.get(download_url, headers=headers, stream=True, timeout=30, verify=False)
+            response = session.get(download_url, stream=True, timeout=30, verify=False)
             response.raise_for_status()
             return response.content
         except Exception as e:
@@ -57,6 +62,12 @@ def download_file_from_google_drive(drive_link, max_retries=3):
                 raise RuntimeError(f"Download failed: {e}")
 
 def process_image(tool_id, drive_link, folder):
+    filename = os.path.join(folder_paths[folder], f"{folder}_{tool_id}.jpg") # construct path from cached folder path
+
+    # Skip download if file already exists
+    if os.path.exists(filename):
+        return True, f"Skipped (already exists): {filename}"
+
     try:
         file_content = download_file_from_google_drive(drive_link)
         image_data = BytesIO(file_content)
@@ -65,11 +76,10 @@ def process_image(tool_id, drive_link, folder):
         if img.mode in ("RGBA", "P"):
             img = img.convert("RGB")
 
-        filename = os.path.join(base_dir, folder, f"{folder}_{tool_id}.jpg")
         img.save(filename, "JPEG", quality=92)
         return True, f"Saved {filename}"
     except (UnidentifiedImageError, OSError, RuntimeError) as e:
-        error_msg = f"Tool ID {tool_id} ({folder}): {e}"
+        error_msg = f"Tool ID {tool_id} ({folder}): {e} (link: {drive_link})"
         logging.error(error_msg)
         return False, error_msg
 
@@ -100,17 +110,19 @@ def retry_failed_downloads(log_path='log.txt'):
             logging.error(f"Retry failed for {tool_id} ({folder}): {e}")
 
 def main_download():
-    data = pd.read_excel(file_path)
+    data = pd.read_excel(args.file)
     tasks = []
 
     for _, row in data.iterrows():
         tool_id = str(row['Tool ID'])
         for col_name, folder in columns_and_folders.items():
             drive_link = row.get(col_name)
-            if pd.notna(drive_link):
+            if pd.notna(drive_link) and isinstance(drive_link, str) and 'drive.google.com' in drive_link:
                 tasks.append((tool_id, drive_link, folder))
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    max_workers = min(50, len(tasks))  # Dynamic cap
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = [executor.submit(process_image, tool_id, link, folder) for tool_id, link, folder in tasks]
         for future in tqdm(as_completed(futures), total=len(futures), desc="Processing images"):
             try:
@@ -124,6 +136,7 @@ def main_download():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Image downloader for tools")
     parser.add_argument('--retry', action='store_true', help="Retry failed downloads from log.txt")
+    parser.add_argument('--file', type=str, default='osint.xlsx', help="Excel file path")
     args = parser.parse_args()
 
     if args.retry:
