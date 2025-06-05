@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import requests
+import pillow_avif # pip install pillow-avif-plugin - # Registers AVIF support
+import pillowsvg.SvgImagePlugin # pip install pillow-svg - # Registers SVG support
 from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, as_completed
