@@ -1,31 +1,47 @@
 import os
+import pandas as pd
 
-# Hardcoded total number of tools
-TOTAL_TOOLS = 552  # Set this to your actual total
+# ==== CONFIG ====
+excel_file = "osint.xlsx"
+sheet_name = "Main"
+base_dir = "osint"
+output_log = "missing.txt"
 
-# Folder and prefix mapping (adjust as needed)
-folders = {
-    'logo': 'logo',
-    'ui': 'ui',
-    'demo1': 'demo1',
-    'demo2': 'demo2',
-    'demo3': 'demo3',
+# Column to folder mapping (Excel column → subfolder name)
+columns = {
+    "Tool Logo": "logo",
+    "Tool UI": "ui",
+    "Demo 1 Image": "demo1",
+    "Demo 2 Image": "demo2",
+    "Demo 3 Image": "demo3",
 }
 
-base_dir = 'osint'
 missing = []
 
-for folder in folders.values():
-    folder_path = os.path.join(base_dir, folder)
-    for i in range(1, TOTAL_TOOLS + 1):
-        tool_id = f"T_OF_{i:03d}"
+# ==== READ DATA ====
+df = pd.read_excel(excel_file, sheet_name=sheet_name)
+df.columns = df.columns.str.strip()
+
+# ==== CHECK FILE EXISTENCE ====
+for _, row in df.iterrows():
+    tool_id = str(row["Tool ID"]).strip()
+
+    for col_name, folder in columns.items():
+        cell_value = row.get(col_name)
+
+        if pd.isna(cell_value) or not str(cell_value).strip():
+            # Blank cell — image intentionally missing, skip
+            continue
+
         filename = f"{folder}_{tool_id}.jpg"
-        full_path = os.path.join(folder_path, filename)
+        full_path = os.path.join(base_dir, folder, filename)
+
         if not os.path.exists(full_path):
             missing.append(full_path)
 
-with open("missing.txt", "w") as f:
+# ==== WRITE MISSING TO FILE ====
+with open(output_log, "w") as f:
     for path in missing:
         f.write(path + "\n")
 
-print(f"Checked {TOTAL_TOOLS} tools in each folder. {len(missing)} missing files written to missing.txt.")
+print(f"✅ Checked {len(df)} tools. {len(missing)} missing files written to {output_log}.")

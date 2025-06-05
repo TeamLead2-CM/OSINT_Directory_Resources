@@ -2,7 +2,7 @@
 
 #### Setup and Usage
 
-1. `pip install Willow[Pillow,heif] pandas tqdm cairosvg`
+1. `pip install pillow pillow-avif-plugin Willow[Pillow,heif] pandas tqdm cairosvg`
 
 2. start (configure folders etc in code):
 `python image_downloader.py --file <input filename>`

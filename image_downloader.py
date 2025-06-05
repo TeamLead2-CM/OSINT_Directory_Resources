@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import requests
+import pillow_avif
 from willow.image import Image, UnrecognisedImageFormatError  # pip install Willow[Pillow,heif]
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, as_completed
