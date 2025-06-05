@@ -1,9 +1,7 @@
 import os
 import pandas as pd
 import requests
-import pillow_avif # pip install pillow-avif-plugin - # Registers AVIF support
-import pillowsvg.SvgImagePlugin # pip install pillow-svg - # Registers SVG support
-from PIL import Image, UnidentifiedImageError
+from willow.image import Image, UnrecognisedImageFormatError  # pip install Willow[Pillow,heif]
 from io import BytesIO
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
@@ -12,13 +10,14 @@ import urllib3
 import re
 import argparse
 import time
+import cairosvg
 
 # Disable SSL warnings (use only in trusted/internal context)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 print("⚠️ WARNING: SSL verification is disabled. Use only for trusted internal scripts. NOT RECOMMENDED IN PRODUCTION!")
 
 # Set up logging
-logging.basicConfig(filename='log.txt', level=logging.ERROR, 
+logging.basicConfig(filename='log.txt', level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Define constants
@@ -64,24 +63,51 @@ def download_file_from_google_drive(drive_link, max_retries=3):
                 raise RuntimeError(f"Download failed: {e}")
 
 def process_image(tool_id, drive_link, folder):
-    filename = os.path.join(folder_paths[folder], f"{folder}_{tool_id}.jpg") # construct path from cached folder path
-
-    # Skip download if file already exists
+    filename = os.path.join(folder_paths[folder], f"{folder}_{tool_id}.jpg")
     if os.path.exists(filename):
         return True, f"Skipped (already exists): {filename}"
 
     try:
         file_content = download_file_from_google_drive(drive_link)
         image_data = BytesIO(file_content)
-        img = Image.open(image_data)
+        image_data.seek(0)
 
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
+        # Robust SVG detection by header or tag in first 200 bytes
+        if file_content.strip().startswith(b'<?xml') or b'<svg' in file_content[:200].lower():
+            try:
+                # Convert SVG to PNG in memory
+                png_bytes = cairosvg.svg2png(bytestring=file_content, background_color='white')
+                png_data = BytesIO(png_bytes)
+                img = Image.open(png_data)
+                img = img.set_background_color_rgb((255, 255, 255))
+                with open(filename, "wb") as out_file:
+                    img.save_as_jpeg(out_file)
+                return True, f"Saved (SVG converted) {filename}"
+            except Exception as svg_e:
+                error_msg = (
+                    f"Tool ID {tool_id} ({folder}): SVG conversion error: {type(svg_e).__name__}: {svg_e} (link: {drive_link})"
+                )
+                logging.error(error_msg)
+                return False, error_msg
+        else:
+            try:
+                img = Image.open(image_data)
+                img = img.set_background_color_rgb((255, 255, 255))
+                with open(filename, "wb") as out_file:
+                    img.save_as_jpeg(out_file)
+                return True, f"Saved {filename}"
+            except Exception as img_e:
+                error_msg = (
+                    f"Tool ID {tool_id} ({folder}): Image processing error: {type(img_e).__name__}: {img_e} (link: {drive_link})"
+                )
+                logging.error(error_msg)
+                return False, error_msg
 
-        img.save(filename, "JPEG", quality=92)
-        return True, f"Saved {filename}"
-    except (UnidentifiedImageError, OSError, RuntimeError) as e:
-        error_msg = f"Tool ID {tool_id} ({folder}): {e} (link: {drive_link})"
+    except Exception as e:
+        # This catches errors in download or any unexpected place
+        error_msg = (
+            f"Tool ID {tool_id} ({folder}): General error: {type(e).__name__}: {e} (link: {drive_link})"
+        )
         logging.error(error_msg)
         return False, error_msg
 
@@ -119,8 +145,14 @@ def main_download():
         tool_id = str(row['Tool ID'])
         for col_name, folder in columns_and_folders.items():
             drive_link = row.get(col_name)
-            if pd.notna(drive_link) and isinstance(drive_link, str) and 'drive.google.com' in drive_link:
-                tasks.append((tool_id, drive_link, folder))
+            if pd.notna(drive_link) and isinstance(drive_link, str) and drive_link.strip():
+                if 'drive.google.com' in drive_link:
+                    tasks.append((tool_id, drive_link, folder))
+                else:
+                    logging.error(f"Tool ID {tool_id} ({folder}): Invalid link format (not Google Drive): '{drive_link}'")
+            elif isinstance(drive_link, str) and not drive_link.strip():
+                logging.info(f"Tool ID {tool_id} ({folder}): Blank cell (intentionally left empty)")
+
 
     max_workers = min(50, len(tasks))  # Dynamic cap
 
